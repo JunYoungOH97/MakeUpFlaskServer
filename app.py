@@ -3,7 +3,6 @@ import requests
 
 from m_connection import s3_connection, s3_put_object, s3_get_image_path
 # from model import model
-import utils
 from model.beautyGAN import beautyGAN
 
 import keys
@@ -34,7 +33,7 @@ def upload():
 
     if ret :
         print("파일 저장 성공")
-        return "True"
+        return result
 
     else:
         print("파일 저장 실패")
