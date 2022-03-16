@@ -1,60 +1,19 @@
-from flask import Flask, request
-import requests
+import utils
 
-from m_connection import s3_connection, s3_put_object, s3_get_image_path
-# from model import model
-from model.beautyGAN import beautyGAN
-
-import keys
-
-from celery import Celery
-
-s3 = s3_connection()
-app = Flask(__name__)
-app.config.update(
-    CELERY_BROKER_URL=f'redis://{keys.ip}:{keys.port}',
-    CELERY_RESULT_BACKEND=f'redis://{keys.ip}:{keys.port}'
-)
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-celery.conf.update(app.config)
+s3, app, celery = utils.getObjects()
 
 @celery.task()
 def task(uuid):
-    source = s3_get_image_path(f"{uuid}/source/source.png")
-    target = s3_get_image_path(f"{uuid}/target/target.png")
+    result, state = utils.pipeLine(uuid, s3)
+    return result, state
 
-    resultImage = beautyGAN(source, target).test()
-    
-    ## /{uuid}/result/result.png
-    result = f"{uuid}/result/result.png"
-    ret = s3_put_object(s3, resultImage, result)
-
-    return result, ret
-
-
-# @app.route('/')
 @app.route('/makeup', methods = ['POST'])
-def upload():
-    # response = requests.get("https://jsonplaceholder.typicode.com/users/1")
-    # source = s3_get_image_path(response.json()['source'])
-    # target = s3_get_image_path(response.json()['target'])
-    
-    # source = s3_get_image_path("KakaoTalk_Photo_2022-03-09-16-55-15")
-    # target = s3_get_image_path("KakaoTalk_Photo_2022-03-09-16-55-09")
+def runModel():
+    uuid = utils.getUuid()
 
-    uuid = request.json["file"]
+    result, state = task(uuid)
 
-    result, ret = task(uuid)
-
-    if ret :
-        print("파일 저장 성공")
-        return result
-
-    else:
-        print("파일 저장 실패")
-        return "False"
-
-    # return s3_get_image_path(key_name)
+    return utils.returnToSpringServer(result, state)
 
 if(__name__ == "__main__"):
-    app.run(host=keys.ip, port=keys.port, debug=True)
+    utils.runApp(app)
