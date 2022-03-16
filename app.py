@@ -1,40 +1,19 @@
-from flask import Flask, request
-from m_connection import s3_connection, s3_put_object, s3_get_image_path
-from model.beautyGAN import beautyGAN
-from celery import Celery
-import keys
+import utils
 
-s3 = s3_connection()
-
-app = Flask(__name__)
-app.config.update(
-    CELERY_BROKER_URL=f'redis://{keys.ip}:{keys.port}',
-    CELERY_RESULT_BACKEND=f'redis://{keys.ip}:{keys.port}'
-)
-
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-celery.conf.update(app.config)
+s3, app, celery = utils.getObjects()
 
 @celery.task()
 def task(uuid):
-    source = s3_get_image_path(f"{uuid}/source/source.png")
-    target = s3_get_image_path(f"{uuid}/target/target.png")
-
-    resultImage = beautyGAN(source, target).test()
-    
-    result = f"{uuid}/result/result.png"
-    ret = s3_put_object(s3, resultImage, result)
-
-    return result, ret
-
+    result, state = utils.pipeLine(uuid, s3)
+    return result, state
 
 @app.route('/makeup', methods = ['POST'])
-def upload():
-    uuid = request.json["file"]
+def runModel():
+    uuid = utils.getUuid()
 
-    result, ret = task(uuid)
+    result, state = task(uuid)
 
-    return result if(ret) else "False"
+    return utils.returnToSpringServer(result, state)
 
 if(__name__ == "__main__"):
-    app.run(host=keys.ip, port=keys.port, debug=True)
+    utils.runApp(app)
