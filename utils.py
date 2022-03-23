@@ -1,25 +1,26 @@
-from m_connection import s3_connection, s3_put_object, s3_get_image_path
+from m_connection import connectionS3, putObjectS3, getImagePathS3
 from model.beautyGAN import beautyGAN
 from flask import Flask, request
 from celery import Celery
 import keys
+import ssl
 
 def saveResultImage(uuid, resultImage, s3):
-    result = f"{uuid}/result/result.png"
-    state = s3_put_object(s3, resultImage, result)
-    return result, state
+    resultPath = f"{uuid}/result/result.png"
+    state = putObjectS3(s3, resultImage, resultPath)
+    return resultPath, state
 
 def getResultImage(source, target):
     return beautyGAN(source, target).test()
 
 def getAWSImage(uuid):
-    source = s3_get_image_path(f"{uuid}/source/source.png")
-    target = s3_get_image_path(f"{uuid}/target/target.png")
+    source = getImagePathS3(f"{uuid}/source/source.png")
+    target = getImagePathS3(f"{uuid}/target/target.png")
 
     return source, target
 
 def getS3():
-    return s3_connection()
+    return connectionS3()
 
 def getApp():
     app = Flask(__name__)
@@ -36,7 +37,7 @@ def getCelery(app):
     return celery
 
 def runApp(app):
-    app.run(host=keys.ip, port=keys.port, debug=True)
+    app.run(host=keys.ip, port=keys.port, ssl_context = getSSL(), debug=True)
 
 def getUuid():
     return request.json["file"]
@@ -55,3 +56,8 @@ def pipeLine(uuid, s3):
 
     return result, state
 
+def getSSL():
+    sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    sslContext.load_cert_chain(certfile=keys.SSLCrt, keyfile= keys.SSLKey)
+
+    return sslContext
