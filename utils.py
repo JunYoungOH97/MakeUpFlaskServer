@@ -3,6 +3,7 @@ from model.beautyGAN import beautyGAN
 from flask import Flask, request
 from celery import Celery
 import keys
+import ssl
 
 def saveResultImage(uuid, resultImage, s3):
     resultPath = f"{uuid}/result/result.png"
@@ -36,7 +37,7 @@ def getCelery(app):
     return celery
 
 def runApp(app):
-    app.run(host=keys.ip, port=keys.port, debug=True)
+    app.run(host=keys.ip, port=keys.port, ssl_context = getSSL(), debug=True)
 
 def getUuid():
     return request.json["file"]
@@ -55,3 +56,8 @@ def pipeLine(uuid, s3):
 
     return result, state
 
+def getSSL():
+    sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    sslContext.load_cert_chain(certfile=keys.SSLCrt, keyfile= keys.SSLKey)
+
+    return sslContext
