@@ -37,7 +37,9 @@ def getCelery(app):
     return celery
 
 def runApp(app):
-    app.run(host=keys.ip, port=keys.port, ssl_context = getSSL(), debug=True)
+    app.run(host=keys.ip, port=keys.port)
+    # app.run(host=keys.ip, port=keys.port, debug=True)
+    # app.run(host=keys.ip, port=keys.port, ssl_context = getSSL(), debug=True)
 
 def getUuid():
     return request.json["file"]
