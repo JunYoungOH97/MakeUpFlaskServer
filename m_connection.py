@@ -22,7 +22,8 @@ def putObjectS3(s3, resultImage, accessPath):
         s3.put_object(Bucket = AWS_S3_BUCKET_NAME,
                       Body = resultImage,
                       Key = accessPath,
-                      ContentType='image/png')
+                      ContentType='image/png',
+                      ACL = 'public-read')
 
     except Exception as e:
         print(e)

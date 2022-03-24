@@ -1,6 +1,6 @@
 from m_connection import connectionS3, putObjectS3, getImagePathS3
 from model.beautyGAN import beautyGAN
-from flask import Flask, request
+from flask import Flask, request, abort
 from celery import Celery
 import keys
 import ssl
@@ -35,6 +35,10 @@ def getCelery(app):
     celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
     celery.conf.update(app.config)
     return celery
+
+def limitAddr():
+    if(request.environ.get('HTTP_X_REAL_IP', request.remote_addr) not in keys.allowIp):
+        abort(403)
 
 def runApp(app):
     app.run(host=keys.ip, port=keys.port)

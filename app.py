@@ -6,7 +6,7 @@ s3, app, celery = utils.getObjects()
 def task(uuid):
     result, state = utils.pipeLine(uuid, s3)
     return result, state
-
+        
 @app.route('/makeup', methods = ['POST'])
 def runModel():
     uuid = utils.getUuid()
@@ -14,6 +14,10 @@ def runModel():
     result, state = task(uuid)
 
     return utils.returnToSpringServer(result, state)
+
+@app.before_request
+def forSecurity():
+    utils.limitAddr()
 
 if(__name__ == "__main__"):
     utils.runApp(app)
